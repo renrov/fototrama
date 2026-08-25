@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fototrama — convertidor de imágenes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sun: #FCBF49;
+    --sun-dim: #e0a62f;
+    --paper: #ffffff;
+    --cream: #fdfaf7;
+    --ink: #843511;
+    --muted: #a97c62;
+    --line: #ecdccf;
+    --line-strong: #f6dca3;
+    --radius: 20px;
+    --radius-sm: 12px;
+    --font-display: 'Montserrat Alternates', sans-serif;
+    --font-body: 'Montserrat Alternates', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    background:
+      repeating-linear-gradient(90deg, #fffaf0 0 1px, #ffffff 1px 46px),
+      repeating-linear-gradient(0deg, #fffaf0 0 1px, #ffffff 1px 46px),
+      #ffffff;
+    color:var(--ink);
+    font-family: var(--font-body);
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+    border-bottom:4px solid var(--sun);
+    padding-bottom:14px;
+    margin-bottom:26px;
+    flex-wrap:wrap;
+  }
+  h1{
+    font-family: var(--font-display);
+    font-weight:900;
+    font-size:clamp(34px,6vw,58px);
+    letter-spacing:-1px;
+    margin:0;
+    line-height:0.9;
+    color:var(--ink);
+  }
+  h1 span{
+    color:var(--sun-dim);
+  }
+  .tag{
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    max-width:260px;
+    text-align:right;
+    line-height:1.5;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 300px;
+    gap:22px;
+  }
+  @media (max-width:860px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .panel-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin:0 0 14px;
+    padding-bottom:10px;
+    border-bottom:2px solid var(--sun);
+  }
+  #dropzone{
+    border:2.5px dashed var(--line-strong);
+    border-radius:var(--radius);
+    padding:60px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  #dropzone:hover, #dropzone.drag{
+    border-color:var(--sun);
+    background:rgba(252,191,73,.12);
+  }
+  #dropzone p{
+    margin:0 0 6px;
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:14px;
+    color:var(--muted);
+    letter-spacing:.5px;
+  }
+  #dropzone .big{
+    font-size:38px;
+    margin-bottom:10px;
+    color:var(--sun-dim);
+  }
+  #fileInput{display:none;}
+  .canvas-stage{
+    display:none;
+    text-align:center;
+  }
+  .canvas-stage.active{display:block;}
+  #canvasFrame{
+    display:inline-block;
+    background:var(--paper);
+    padding:14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow: 0 0 0 6px var(--cream), 0 8px 24px rgba(28,26,18,.08);
+    max-width:100%;
+  }
+  canvas{
+    display:block;
+    max-width:100%;
+    height:auto;
+    image-rendering:pixelated;
+    border-radius:var(--radius-sm);
+  }
+  .field{margin-bottom:18px;}
+  .field label{
+    display:flex;
+    justify-content:space-between;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .field label b{color:var(--ink);font-weight:700;letter-spacing:0;text-transform:none;}
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:4px;
+    border-radius:4px;
+    background:var(--line);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:18px;height:18px;
+    background:var(--sun);
+    border:2px solid var(--ink);
+    border-radius:50%;
+    cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;
+    background:var(--sun);
+    border:2px solid var(--ink);
+    border-radius:50%;
+    cursor:pointer;
+  }
+  select{
+    width:100%;
+    background:var(--paper);
+    color:var(--ink);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:13px;
+  }
+  .btnrow{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:6px;
+  }
+  .shapebtn{
+    background:var(--paper);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius-sm);
+    color:var(--muted);
+    padding:9px 4px;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:10px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .shapebtn.active{
+    background:var(--sun);
+    border-color:var(--sun);
+    color:var(--ink);
+    font-weight:700;
+  }
+  .toggle{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:12px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--muted);
+    cursor:pointer;
+    user-select:none;
+  }
+  .toggle input{accent-color:var(--sun-dim);}
+  .actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+  button.main{
+    flex:1;
+    background:var(--sun);
+    color:var(--ink);
+    border:none;
+    border-radius:var(--radius-sm);
+    padding:14px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.main:hover{background:var(--sun-dim);}
+  button.ghost{
+    background:transparent;
+    color:var(--muted);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius-sm);
+    padding:14px 16px;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.ghost:hover{color:var(--ink);border-color:var(--sun);}
+  .meta{
+    margin-top:16px;
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.3px;
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .meta b{color:var(--sun-dim);}
+  footer{
+    margin-top:30px;
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:11px;
+    color:var(--muted);
+    text-align:center;
+    letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>FOTO<span>TRAMA</span></h1>
+    <div class="tag">Sistema modular de construcción de imágenes públicas — Joselevich &amp; Fingermann, 1963. Reconstrucción digital: pastillas como píxeles.</div>
+  </header>
+
+  <div class="grid">
+
+    <div class="panel" id="stagePanel">
+      <p class="panel-title">Bastidor</p>
+
+      <div id="dropzone">
+        <div class="big">▦</div>
+        <p>Arrastrá una imagen o hacé click para subirla</p>
+        <p style="font-size:11px;">JPG · PNG · WEBP</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*">
+
+      <div class="canvas-stage" id="canvasStage">
+        <div id="canvasFrame"><canvas id="canvas"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Pastillas</p>
+
+      <div class="field">
+        <label>Resolución <b id="resVal">64</b> col.</label>
+        <input type="range" id="res" min="12" max="140" value="64">
+      </div>
+
+      <div class="field">
+        <label>Paleta</label>
+        <select id="palette">
+          <option value="color" selected>Color posterizado</option>
+          <option value="clasico">Clásico B/N (venecita 4 tonos)</option>
+          <option value="sepia">Sepia IKA</option>
+          <option value="ypf">Azul YPF</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" id="flatInks">
+          Tintas planas (sin degradé de pastilla)
+        </label>
+      </div>
+
+      <div class="field">
+        <label>Umbral sombras <b id="shadowVal">10</b>%</label>
+        <input type="range" id="shadowThresh" min="0" max="45" value="10">
+      </div>
+
+      <div class="field">
+        <label>Umbral luces <b id="lightVal">90</b>%</label>
+        <input type="range" id="lightThresh" min="55" max="100" value="90">
+      </div>
+
+      <div class="field">
+        <label>Forma de la pastilla</label>
+        <div class="btnrow">
+          <button class="shapebtn active" data-shape="pastilla">Pastilla (cuad. + círculo)</button>
+          <button class="shapebtn" data-shape="square">Cuadrada</button>
+          <button class="shapebtn" data-shape="circle">Redonda</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="main" id="downloadBtn">Descargar PNG</button>
+        <button class="ghost" id="downloadSvgBtn">SVG</button>
+      </div>
+      <div class="actions" style="margin-top:8px;">
+        <button class="ghost" id="resetBtn" style="flex:1;">Otra imagen</button>
+      </div>
+
+      <div class="meta" id="metaInfo"></div>
+    </div>
+
+  </div>
+
+  <footer>Cada pastilla equivale a un módulo de 5×5&nbsp;cm sobre bastidor de 100×100&nbsp;cm en el sistema original.</footer>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const stagePanel = document.getElementById('stagePanel');
+const canvasStage = document.getElementById('canvasStage');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const resInput = document.getElementById('res');
+const paletteSelect = document.getElementById('palette');
+const flatInks = document.getElementById('flatInks');
+const shadowThresh = document.getElementById('shadowThresh');
+const lightThresh = document.getElementById('lightThresh');
+const shadowVal = document.getElementById('shadowVal');
+const lightVal = document.getElementById('lightVal');
+const resVal = document.getElementById('resVal');
+const metaInfo = document.getElementById('metaInfo');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadSvgBtn = document.getElementById('downloadSvgBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+let img = null;
+let shape = 'pastilla';
+let lastRender = null;
+const OUT_W = 900;
+
+const palettes = {
+  clasico: ['#ece6d8', '#a8a196', '#565349', '#141414'],
+  sepia: ['#f0e0c0', '#c99a5b', '#8a5a2b', '#3a2210'],
+  ypf: ['#eef2f5', '#7fa8c9', '#2b5e8c', '#0d1f33'],
+  color: null
+};
+
+function rampFrom(colors, n){
+  if(n === colors.length) return colors;
+  const out = [];
+  for(let i=0;i<n;i++){
+    const t = i/(n-1);
+    const idx = t*(colors.length-1);
+    const a = Math.floor(idx), b = Math.min(colors.length-1, a+1);
+    const f = idx-a;
+    out.push(mixHex(colors[a], colors[b], f));
+  }
+  return out;
+}
+function mixHex(h1,h2,f){
+  const c1 = hexToRgb(h1), c2 = hexToRgb(h2);
+  const r = Math.round(c1[0]+(c2[0]-c1[0])*f);
+  const g = Math.round(c1[1]+(c2[1]-c1[1])*f);
+  const b = Math.round(c1[2]+(c2[2]-c1[2])*f);
+  return `rgb(${r},${g},${b})`;
+}
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  return [parseInt(hex.substring(0,2),16), parseInt(hex.substring(2,4),16), parseInt(hex.substring(4,6),16)];
+}
+function parseColor(c){
+  if(c.startsWith('#')) return hexToRgb(c);
+  const m = c.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  return m ? [parseInt(m[1]),parseInt(m[2]),parseInt(m[3])] : [0,0,0];
+}
+function lighten(color, f){
+  const [r,g,b] = parseColor(color);
+  const nr = Math.round(r+(255-r)*f);
+  const ng = Math.round(g+(255-g)*f);
+  const nb = Math.round(b+(255-b)*f);
+  return `rgb(${nr},${ng},${nb})`;
+}
+
+['dragenter','dragover'].forEach(ev=>{
+  dropzone.addEventListener(ev, e=>{e.preventDefault(); dropzone.classList.add('drag');});
+});
+['dragleave','drop'].forEach(ev=>{
+  dropzone.addEventListener(ev, e=>{e.preventDefault(); dropzone.classList.remove('drag');});
+});
+dropzone.addEventListener('drop', e=>{
+  const f = e.dataTransfer.files[0];
+  if(f) loadFile(f);
+});
+dropzone.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', e=>{
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+function loadFile(file){
+  if(!file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    img = new Image();
+    img.onload = ()=>{
+      dropzone.style.display = 'none';
+      canvasStage.classList.add('active');
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+resInput.addEventListener('input', ()=>{resVal.textContent = resInput.value; render();});
+paletteSelect.addEventListener('change', render);
+flatInks.addEventListener('change', render);
+shadowThresh.addEventListener('input', ()=>{
+  if(parseInt(shadowThresh.value) > parseInt(lightThresh.value)-10){
+    shadowThresh.value = parseInt(lightThresh.value)-10;
+  }
+  shadowVal.textContent = shadowThresh.value; render();
+});
+lightThresh.addEventListener('input', ()=>{
+  if(parseInt(lightThresh.value) < parseInt(shadowThresh.value)+10){
+    lightThresh.value = parseInt(shadowThresh.value)+10;
+  }
+  lightVal.textContent = lightThresh.value; render();
+});
+
+document.querySelectorAll('.shapebtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.shapebtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    shape = btn.dataset.shape;
+    render();
+  });
+});
+
+resetBtn.addEventListener('click', ()=>{
+  img = null;
+  lastRender = null;
+  canvasStage.classList.remove('active');
+  dropzone.style.display = 'block';
+  fileInput.value = '';
+});
+
+downloadBtn.addEventListener('click', ()=>{
+  if(!img) return;
+  const link = document.createElement('a');
+  link.download = 'fototrama.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+downloadSvgBtn.addEventListener('click', ()=>{
+  if(!lastRender) return;
+  const svg = buildSVG(lastRender);
+  const blob = new Blob([svg], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = 'fototrama.svg';
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
+function buildSVG(rd){
+  const {cols, rows, tileSize, outW, outH, gap, shape, flat, fills} = rd;
+  let body = `<rect x="0" y="0" width="${outW}" height="${outH}" fill="#ffffff"/>`;
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const fill = fills[y*cols+x];
+      const px = x*tileSize, py = y*tileSize;
+      if(shape === 'square'){
+        body += `<rect x="${(px+gap/2).toFixed(2)}" y="${(py+gap/2).toFixed(2)}" width="${(tileSize-gap).toFixed(2)}" height="${(tileSize-gap).toFixed(2)}" fill="${fill}"/>`;
+      } else if(shape === 'circle'){
+        body += `<circle cx="${(px+tileSize/2).toFixed(2)}" cy="${(py+tileSize/2).toFixed(2)}" r="${((tileSize-gap)/2).toFixed(2)}" fill="${fill}"/>`;
+      } else if(flat){
+        body += `<rect x="${(px+gap/2).toFixed(2)}" y="${(py+gap/2).toFixed(2)}" width="${(tileSize-gap).toFixed(2)}" height="${(tileSize-gap).toFixed(2)}" fill="${fill}"/>`;
+      } else {
+        const bg = lighten(fill, 0.35);
+        body += `<rect x="${(px+gap/2).toFixed(2)}" y="${(py+gap/2).toFixed(2)}" width="${(tileSize-gap).toFixed(2)}" height="${(tileSize-gap).toFixed(2)}" fill="${bg}"/>`;
+        body += `<circle cx="${(px+tileSize/2).toFixed(2)}" cy="${(py+tileSize/2).toFixed(2)}" r="${((tileSize-gap)/2*0.82).toFixed(2)}" fill="${fill}"/>`;
+      }
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${outW} ${outH}" width="${outW}" height="${outH}">${body}</svg>`;
+}
+
+function render(){
+  if(!img) return;
+
+  const cols = parseInt(resInput.value);
+  const nTones = 10;
+  const aspect = img.height / img.width;
+  const rows = Math.max(1, Math.round(cols * aspect));
+  const tileSize = OUT_W / cols;
+  const outH = tileSize * rows;
+
+  // Downsample source image to cols x rows for averaging
+  const small = document.createElement('canvas');
+  small.width = cols; small.height = rows;
+  const sctx = small.getContext('2d');
+  sctx.imageSmoothingEnabled = true;
+  sctx.drawImage(img, 0, 0, cols, rows);
+  const data = sctx.getImageData(0,0,cols,rows).data;
+
+  canvas.width = OUT_W;
+  canvas.height = outH;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,OUT_W,outH);
+
+  const paletteKey = paletteSelect.value;
+  const flat = flatInks.checked;
+  const ramp = paletteKey === 'color' ? null : rampFrom(palettes[paletteKey], nTones);
+  const levels = nTones - 1;
+  const gap = Math.max(1, tileSize * 0.08);
+
+  // umbral: recorta sombras/luces y estira lo que queda al medio —
+  // así se "eliminan" las tintas medias en vez de degradar suave
+  const sT = parseInt(shadowThresh.value) / 100;
+  const lT = parseInt(lightThresh.value) / 100;
+  const remap = v => {
+    if(v <= sT) return 0;
+    if(v >= lT) return 1;
+    return (v - sT) / (lT - sT);
+  };
+
+  const fills = [];
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const i = (y*cols+x)*4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      let fill;
+      if(paletteKey === 'color'){
+        const q = v => {
+          const t = remap(v/255);
+          return Math.round(Math.round(t*levels)/levels*255);
+        };
+        fill = `rgb(${q(r)},${q(g)},${q(b)})`;
+      } else {
+        const lum = remap((0.299*r + 0.587*g + 0.114*b) / 255);
+        const idx = Math.min(levels, Math.round(lum*levels));
+        fill = ramp[idx];
+      }
+      fills.push(fill);
+      const px = x*tileSize, py = y*tileSize;
+      if(shape === 'square'){
+        ctx.fillStyle = fill;
+        ctx.fillRect(px+gap/2, py+gap/2, tileSize-gap, tileSize-gap);
+      } else if(shape === 'circle'){
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(px+tileSize/2, py+tileSize/2, (tileSize-gap)/2, 0, Math.PI*2);
+        ctx.fill();
+      } else if(flat){
+        // tinta plana: bloque sólido sin marco ni degradé
+        ctx.fillStyle = fill;
+        ctx.fillRect(px+gap/2, py+gap/2, tileSize-gap, tileSize-gap);
+      } else {
+        // pastilla real: cuadrado plástico de base + círculo tonal encastrado
+        // el marco toma el mismo color, aclarado, no un gris neutro
+        ctx.fillStyle = lighten(fill, 0.35);
+        ctx.fillRect(px+gap/2, py+gap/2, tileSize-gap, tileSize-gap);
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(px+tileSize/2, py+tileSize/2, (tileSize-gap)/2*0.82, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  metaInfo.innerHTML = `<b>${cols}×${rows}</b> pastillas · ${cols*rows} unidades totales`;
+
+  lastRender = {cols, rows, tileSize, outW: OUT_W, outH, gap, shape, flat, fills};
+}
+</script>
+</body>
+</html>
